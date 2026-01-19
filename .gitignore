@@ -1,0 +1,10 @@
+build/
+*.exe
+*.obj
+*.pdb
+*.ilk
+*.tlog
+*.log
+.vs/
+.vscode/
+.github/instructions/codacy.instructions.md
