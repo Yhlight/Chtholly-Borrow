@@ -2,47 +2,45 @@ import os
 import sys
 import subprocess
 import shutil
+import platform
 
 def run_command(command, cwd=None):
-    """执行系统命令并实时打印输出"""
+    """Executes system command and prints output"""
     print(f"Executing: {' '.join(command)}")
-    result = subprocess.run(command, cwd=cwd, shell=True)
+    # On Windows shell=True is often needed for cmake to be found if not in direct path or for some shell features.
+    # On Linux it's better to avoid shell=True if passing a list.
+    use_shell = (sys.platform == 'win32')
+    result = subprocess.run(command, cwd=cwd, shell=use_shell)
     if result.returncode != 0:
         print(f"Error: Command failed with exit code {result.returncode}")
         sys.exit(result.returncode)
 
 def main():
-    # 1. 配置参数
+    # 1. Configuration
     build_dir = "build"
-    # 默认 Release，支持通过 python build.py debug 切换
+    # Default Release
     config = "Release"
     if len(sys.argv) > 1 and sys.argv[1].lower() == "debug":
         config = "Debug"
 
-    # 2. 清理旧的构建目录 (可选)
-    # if os.path.exists(build_dir):
-    #     shutil.rmtree(build_dir)
-
     if not os.path.exists(build_dir):
         os.makedirs(build_dir)
 
-    # 3. 配置阶段 (Configure)
-    # 使用 -A x64 强制 64 位构建，这是 LLVM 开发的标配
+    # 3. Configure
     configure_cmd = [
         "cmake",
         "-S", ".",
         "-B", build_dir,
-        "-A", "x64",
         f"-DCMAKE_BUILD_TYPE={config}"
     ]
-    
-    # 如果你想通过脚本开启静态链接 LLVM，可以添加：
-    # configure_cmd.append("-DUSE_STATIC_LLVM=ON")
+
+    # Only add -A x64 on Windows (Visual Studio generator)
+    if sys.platform == "win32":
+        configure_cmd.extend(["-A", "x64"])
 
     run_command(configure_cmd)
 
-    # 4. 构建阶段 (Build)
-    # --parallel 开启多核编译，显著提升构建速度
+    # 4. Build
     build_cmd = [
         "cmake",
         "--build", build_dir,
@@ -53,7 +51,14 @@ def main():
     run_command(build_cmd)
 
     print(f"\n[Success] Build finished in {config} mode.")
-    print(f"Executable: {os.path.join(build_dir, config, 'chtholly.exe')}")
+    exe_name = "chtholly.exe" if sys.platform == "win32" else "chtholly"
+
+    # Check possible locations
+    exe_path = os.path.join(build_dir, config, exe_name)
+    if not os.path.exists(exe_path):
+        exe_path = os.path.join(build_dir, exe_name)
+
+    print(f"Executable: {exe_path}")
 
 if __name__ == "__main__":
     main()

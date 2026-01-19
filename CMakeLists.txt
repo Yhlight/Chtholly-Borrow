@@ -9,6 +9,8 @@ endif()
 
 if(MSVC)
     add_compile_options(/utf-8 /GR)
+else()
+    add_compile_options(-Wall -Wextra)
 endif()
 
 set(CMAKE_CXX_STANDARD 20)
@@ -17,12 +19,17 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 option(USE_STATIC_LLVM "Link against static LLVM libraries" OFF)
 
 if(USE_STATIC_LLVM)
-    set(LLVM_DIR "D:/yhprogram/LLVM_Static/lib/cmake/llvm")
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    if(WIN32)
+        # Allow LLVM_DIR to be provided externally, only set default if not set
+        if(NOT LLVM_DIR)
+            set(LLVM_DIR "D:/yhprogram/LLVM_Static/lib/cmake/llvm")
+        endif()
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    endif()
     add_definitions(-DCHTHOLLY_STATIC_BUILD)
 endif()
 
-find_package(LLVM REQUIRED CONFIG)
+find_package(LLVM 18 REQUIRED CONFIG)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 
 add_definitions(${LLVM_DEFINITIONS})

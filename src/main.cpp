@@ -36,11 +36,19 @@ int main(int argc, char **argv)
 
     if (outPath.empty()) {
         std::filesystem::path p(sourcePath);
+#ifdef _WIN32
         outPath = p.stem().string() + ".exe";
+#else
+        outPath = p.stem().string();
+#endif
     }
 
     std::string objPath = outPath + ".obj";
-    if (outPath.ends_with(".obj")) {
+#ifndef _WIN32
+    objPath = outPath + ".o";
+#endif
+
+    if (outPath.ends_with(".obj") || outPath.ends_with(".o")) {
         objPath = outPath;
     }
 
@@ -98,9 +106,12 @@ int main(int argc, char **argv)
         }
 
         // 4. Automated Linking
-        if (outPath.ends_with(".exe") || !outPath.ends_with(".obj")) {
+        bool isObjFile = outPath.ends_with(".obj") || outPath.ends_with(".o");
+        if (!isObjFile) {
             std::string exePath = outPath;
+#ifdef _WIN32
             if (!exePath.ends_with(".exe")) exePath += ".exe";
+#endif
 
             Linker linker;
             if (linker.invoke(objPath, exePath)) {
@@ -108,7 +119,11 @@ int main(int argc, char **argv)
                 
                 if (shouldRun) {
                     std::cout << "Running " << exePath << "..." << std::endl;
+#ifdef _WIN32
                     std::string runCmd = ".\\" + exePath;
+#else
+                    std::string runCmd = "./" + exePath;
+#endif
                     std::system(runCmd.c_str());
                 }
             } else {
